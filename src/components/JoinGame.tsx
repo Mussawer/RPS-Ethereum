@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { Loader2 } from 'lucide-react'
 
 // import { socket } from '@/lib/socket'
-// import { joinRoomSchema } from '@/lib/validations/joinRoom'
+// import { joinGameSchema } from '@/lib/validations/joinGame'
 import { Button } from '@/src/components/ui/Button'
 import {
   Dialog,
@@ -19,33 +19,37 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/src/compo
 import { Input } from '@/src/components/ui/Input'
 import { useAccount } from 'wagmi'
 
-interface JoinRoomForm {
-    userName: string
-    roomId: string
+interface JoinGameForm {
+  username: string
+  gameId: string
 }
 
-export default function JoinRoom() {
-  const {address, isConnected}  = useAccount();
+interface JoinGameProps {
+  // roomId: string
+  isConnected: boolean
+}
+
+export default function JoinGame({ isConnected }: JoinGameProps) {
   const [isLoading, setIsLoading] = useState(false)
 
-  const form = useForm<JoinRoomForm>({
-    // resolver: zodResolver(joinRoomSchema),
+  const form = useForm<JoinGameForm>({
+    // resolver: zodResolver(joinGameSchema),
     defaultValues: {
-      userName: '',
-      roomId: '',
+      username: '',
+      gameId: '',
     },
   })
 
-  function onSubmit({ roomId, userName }: JoinRoomForm) {
+  function onSubmit({ gameId, username }: JoinGameForm) {
     setIsLoading(true)
     // socket.emit('join-room', { roomId, username })
   }
 
-//   useEffect(() => {
-//     socket.on('room-not-found', () => {
-//       setIsLoading(false)
-//     })
-//   }, [])
+  //   useEffect(() => {
+  //     socket.on('room-not-found', () => {
+  //       setIsLoading(false)
+  //     })
+  //   }, [])
 
   return (
     <Dialog>
@@ -64,7 +68,7 @@ export default function JoinRoom() {
           <form onSubmit={form.handleSubmit(onSubmit)} className='flex flex-col gap-4'>
             <FormField
               control={form.control}
-              name='userName'
+              name='username'
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
@@ -77,7 +81,7 @@ export default function JoinRoom() {
 
             <FormField
               control={form.control}
-              name='roomId'
+              name='gameId'
               render={({ field }) => (
                 <FormItem>
                   <FormControl>

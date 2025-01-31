@@ -7,13 +7,21 @@ import {
   CardTitle,
 } from '@/src/components/ui/Card'
 import { Separator } from '@/src/components/ui/Separator'
-import CreateRoomForm from '@/src/components/CreateRoom'
-import JoinRoomButtoon from '@/src/components/JoinRoom'
+import CreateGame from '@/src/components/CreateGame'
+import JoinRoom from '@/src/components/JoinGame'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
+import { useContext } from 'react'
+import AppContext from '../lib/AppContext'
+import { keccak256, toHex } from 'viem'
 
 export default function Home() {
-  const roomId = nanoid(30)
+  const gameId = nanoid(30)
+  const value = useContext(AppContext);
+  value.setGameId(gameId);
+  value.setBytesGameId(keccak256(toHex((gameId))));
+  
+  const {isConnected}  = useAccount();
 
   return (
     <div className='flex h-screen flex-col items-center justify-between pb-5 pt-[13vh]'>
@@ -29,7 +37,7 @@ export default function Home() {
         </CardHeader>
 
         <CardContent className='flex flex-col space-y-4'>
-          <CreateRoomForm roomId={roomId} />
+          <CreateGame gameId={gameId} isConnected={isConnected}/>
 
           <div className='flex items-center space-x-2 '>
             <Separator />
@@ -37,7 +45,7 @@ export default function Home() {
             <Separator />
           </div>
 
-          <JoinRoomButtoon />
+          <JoinRoom isConnected={isConnected}/>
         </CardContent>
       </Card>
     </div>

@@ -6,6 +6,7 @@ import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { config } from '@/config/wagmi';
 
+
 export default function Providers({
   children,
 }: {
