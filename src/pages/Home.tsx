@@ -8,20 +8,23 @@ import {
 } from '@/src/components/ui/Card'
 import { Separator } from '@/src/components/ui/Separator'
 import CreateGame from '@/src/components/CreateGame'
-import JoinRoom from '@/src/components/JoinGame'
+import JoinGame from '@/src/components/JoinGame'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
-import { useContext } from 'react'
+import { useContext, useEffect } from 'react'
 import AppContext from '../lib/AppContext'
-import { keccak256, toHex } from 'viem'
 
-export default function Home() {
-  const gameId = nanoid(30)
-  const value = useContext(AppContext);
-  value.setGameId(gameId);
-  value.setBytesGameId(keccak256(toHex((gameId))));
+interface HomeProps {
+  gameId: string
+}
+
+export default function Home({gameId}: HomeProps) {
+  const {isConnected, address}  = useAccount();
+  const { setGameId } = useContext(AppContext);
+  useEffect(() => {
+    setGameId(nanoid(30))
+  }, [])
   
-  const {isConnected}  = useAccount();
 
   return (
     <div className='flex h-screen flex-col items-center justify-between pb-5 pt-[13vh]'>
@@ -37,7 +40,7 @@ export default function Home() {
         </CardHeader>
 
         <CardContent className='flex flex-col space-y-4'>
-          <CreateGame gameId={gameId} isConnected={isConnected}/>
+          <CreateGame gameId={gameId} isConnected={isConnected} address={address}/>
 
           <div className='flex items-center space-x-2 '>
             <Separator />
@@ -45,7 +48,7 @@ export default function Home() {
             <Separator />
           </div>
 
-          <JoinRoom isConnected={isConnected}/>
+          <JoinGame isConnected={isConnected} address={address}/>
         </CardContent>
       </Card>
     </div>

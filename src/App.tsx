@@ -7,6 +7,8 @@ import { nanoid } from 'nanoid'
 import AppContext from './lib/AppContext';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { GameRoom } from '@/src/components/GameRoom';
+import { User } from './interfaces/User';
+import { Toaster } from './components/ui/Toaster';
 
 
 const App = () => {
@@ -17,16 +19,18 @@ const App = () => {
   const [outcome, setOutcome] = useState("unknown");
   const [bet, setBet] = useState(0);
   const [choice, setChoice] = useState(1);
+  const [user, setUser] = useState<User>({username: '', id: '', address: '',});
+  const [members, setMembers] = useState<User[]>([]);
 
 
   const router = createBrowserRouter([
     {
       path: "/",
-      element: <Home />,
+      element: <Home gameId={gameId}/>,
     },
     {
       path: "/game-room",
-      element: <GameRoom />,
+      element: <GameRoom gameId={gameId} username={username}/>,
     }
   ]);
 
@@ -41,6 +45,8 @@ const App = () => {
           outcome,
           bet,
           choice,
+          members,
+          user
         },
         setUsername,
         setGameId,
@@ -49,9 +55,12 @@ const App = () => {
         setOutcome,
         setBet,
         setChoice,
+        setMembers,
+        setUser
       }}
     >
       <RouterProvider router={router} />
+      <Toaster />
     </AppContext.Provider>
   );
 };
