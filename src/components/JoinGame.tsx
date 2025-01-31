@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 
 import { useForm } from 'react-hook-form'
-// import * as z from 'zod'
-// import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 
-// import { socket } from '@/lib/socket'
-// import { joinGameSchema } from '@/lib/validations/joinGame'
+import { socket } from '@/src/lib/socket'
 import { Button } from '@/src/components/ui/Button'
 import {
   Dialog,
@@ -17,23 +14,32 @@ import {
 } from '@/src/components/ui/Dialog'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/src/components/ui/Form'
 import { Input } from '@/src/components/ui/Input'
-import { useAccount } from 'wagmi'
+import { keccak256, toHex } from 'viem'
+import AppContext from '../lib/AppContext'
+import { useNavigate } from 'react-router-dom'
 
 interface JoinGameForm {
   username: string
   gameId: string
 }
 
+type HexString = `0x${string}` | undefined;
+
 interface JoinGameProps {
-  // roomId: string
+  // gameId: string
   isConnected: boolean
+  address: HexString
 }
 
-export default function JoinGame({ isConnected }: JoinGameProps) {
+export default function JoinGame({ isConnected, address }: JoinGameProps) {
+  const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
-
+  const {state, setBytesGameId, setStatus, setOutcome, setBet, setChoice, setUsername, setGameId, setMembers} = useContext(AppContext);
+  setStatus(0);
+  setOutcome("unknown");
+  setBet(0);
+  setChoice(1);
   const form = useForm<JoinGameForm>({
-    // resolver: zodResolver(joinGameSchema),
     defaultValues: {
       username: '',
       gameId: '',
@@ -42,19 +48,26 @@ export default function JoinGame({ isConnected }: JoinGameProps) {
 
   function onSubmit({ gameId, username }: JoinGameForm) {
     setIsLoading(true)
-    // socket.emit('join-room', { roomId, username })
+    setUsername(username)
+    setGameId(gameId)
+    setBytesGameId(keccak256(toHex((gameId))));
+    navigate('/game-room')
+    socket.emit('join-room', { gameId, username, p1:false }, {address})
   }
 
-  //   useEffect(() => {
-  //     socket.on('room-not-found', () => {
-  //       setIsLoading(false)
-  //     })
-  //   }, [])
+    useEffect(() => {
+      socket.on('room-not-found', () => {
+        setIsLoading(false)
+      })
+    }, [])
+
+    
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button disabled={!isConnected} variant='outline' className='w-full'>
+      {/* disabled={!isConnected} */}
+        <Button variant='outline' className='w-full'>
           Join a Room
         </Button>
       </DialogTrigger>
@@ -92,7 +105,7 @@ export default function JoinGame({ isConnected }: JoinGameProps) {
               )}
             />
 
-            <Button type='submit' className='mt-2 bg-black'>
+            <Button disabled={state.members.length === 2} type='submit' className='mt-2 bg-black'>
               {isLoading ? <Loader2 className='h-4 w-4 animate-spin' /> : 'Join'}
             </Button>
           </form>
