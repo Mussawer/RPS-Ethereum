@@ -11,4 +11,5 @@ export interface GameRoomData {
     gameId: string
     address: HexString
     p1: boolean
+    choice?: string | number
   }

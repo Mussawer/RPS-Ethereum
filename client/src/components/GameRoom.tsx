@@ -15,6 +15,11 @@ import { Clock } from 'lucide-react'
 import { cn, encrypt } from '../lib/utils'
 import { HexString } from '@/server/src/types'
 import { useAccount } from 'wagmi'
+import { getAccount, deployContract, writeContract } from '@wagmi/core'
+import { CancelButton } from './CancelButton'
+// import { generateSiweNonce } from 'viem/siwe'
+import { parseEther } from 'viem/utils'
+import { config } from '@/config/wagmi'
 
 interface GameRoomProps {
   gameId: string
@@ -23,12 +28,20 @@ interface GameRoomProps {
 
 export const GameRoom = ({ gameId, username }: GameRoomProps) => {
   const navigate = useNavigate()
+  const { connector } = getAccount(config)
   const { isConnected, address } = useAccount();
   const { state, setBytesGameId, setStatus, setOutcome, setBet, setChoice, setMembers } = useContext(AppContext);
   const [isLoading, setIsLoading] = useState(false)
   const [pending, setPending] = useState(false);
   const [selectedHand, setSelectedHand] = useState('');
   const [timeLeft, setTimeLeft] = useState(300)
+  const [player1committed, setPlayer1committed] = useState(false)
+  const [player2committed, setPlayer2committed] = useState(false)
+
+    // Format time as MM:SS
+    const minutes = Math.floor(timeLeft / 60)
+    const seconds = timeLeft % 60
+    const formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
 
   const gameStatus = () => {
     switch (state.status) {
@@ -48,91 +61,6 @@ export const GameRoom = ({ gameId, username }: GameRoomProps) => {
         return "Game cancelled!";
     }
   };
-
-  useEffect(() => {
-    console.log('useEffect')
-    socket.on('update-members', members => {
-      console.log('Updated members list:', members);
-      setMembers(members)
-    })
-
-    socket.on('send-notification', ({ title, message }: Notification) => {
-      console.log('Notification:', title, message);
-      toast(title, {
-        description: message,
-      })
-    })
-
-    return () => {
-      socket.off('update-members')
-      socket.off('send-notification')
-    }
-  }, [setMembers, state.members])
-
-  const timeout = async () => {
-    try {
-      if (state.status <= 1) {
-        //contract for p1 time out
-      }
-      if (1 >= state.status && state.status < 2) {
-        //contract for p2 time out
-      }
-    } catch (error) {
-      console.error('Error submitting timeout:', error)
-    }
-  }
-
-  useEffect(() => {
-    if (state.members?.length === 2 && timeLeft > 0 && state.status === 0.1) {
-      const interval = setInterval(() => {
-        setTimeLeft((time) => {
-          if (time <= 1) {
-            clearInterval(interval)
-            toast.warning("Timeout!!", {
-              description: "Player 2 can call Timeout",
-              duration: 5000,
-              dismissible: true,
-              position: "top-right",
-            });
-            return 0
-          }
-          return time - 1
-        })
-      }, 1000)
-      return () => clearInterval(interval)
-    }
-    else if(state.members?.length === 2 && timeLeft > 0 && 1 >= state.status && state.status < 2){
-      const interval = setInterval(() => {
-        setTimeLeft((time) => {
-          if (time <= 1) {
-            clearInterval(interval)
-            toast.warning("Timeout!!", {
-              description: "Player 1 can call Timeout",
-              duration: 5000,
-              dismissible: true,
-              position: "top-right",
-            });
-            return 0
-          }
-          return time - 1
-        })
-      }, 1000)
-      return () => clearInterval(interval)
-    }
-  }, [state.members, timeLeft])
-
-  useEffect(() => {
-    if (1 >= state.status && state.status < 2) {
-      setTimeLeft(500)
-    }
-  }, [state.status])
-
-
-
-  // Format time as MM:SS
-  const minutes = Math.floor(timeLeft / 60)
-  const seconds = timeLeft % 60
-  const formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
 
   const selectChoice = (hand: Hands) => {
     switch (hand.name) {
@@ -159,39 +87,163 @@ export const GameRoom = ({ gameId, username }: GameRoomProps) => {
     }
   }
 
+  useEffect(() => {
+    socket.on('update-members', members => {
+      console.log('Updated members list:', members);
+      setMembers(members)
+    })
+
+    socket.on('send-notification', ({ title, message }: Notification) => {
+      console.log('Notification:', title, message);
+      toast.info(title, {
+        description: message,
+        duration: 5000,
+        dismissible: true,
+        position: "top-right",
+      })
+    })
+
+    return () => {
+      socket.off('update-members')
+      socket.off('send-notification')
+    }
+  }, [setMembers, state.members])
+
+  const timeout = async () => {
+    try {
+      if (state.status <= 1) {
+        //contract for p1 time out
+      }
+      if (1 >= state.status && state.status < 2) {
+        //contract for p2 time out
+      }
+    } catch (error) {
+      console.error('Error submitting timeout:', error)
+    }
+  }
+
+  useEffect(() => {
+    if (state.members?.length === 2 && timeLeft > 0 && player1committed) {
+      const interval = setInterval(() => {
+        setTimeLeft((time) => {
+          if (time <= 1) {
+            clearInterval(interval)
+            toast.warning("Timeout!!", {
+              description: "Player 1 can call Timeout",
+              duration: 5000,
+              dismissible: true,
+              position: "top-right",
+            });
+            return 0
+          }
+          return time - 1
+        })
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+    else if (state.members?.length === 2 && timeLeft > 0 && player2committed) {
+      const interval = setInterval(() => {
+        setTimeLeft((time) => {
+          if (time <= 1) {
+            clearInterval(interval)
+            toast.warning("Timeout!!", {
+              description: "Player 1 can call Timeout",
+              duration: 5000,
+              dismissible: true,
+              position: "top-right",
+            });
+            return 0
+          }
+          return time - 1
+        })
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [state.members, timeLeft])
+
+  useEffect(() => {
+    if (1 >= state.status && state.status < 2) {
+      setTimeLeft(500)
+    }
+  }, [state.status])
+
   const play = async (address: HexString) => {
     const player = state.members.find((x) => x.address === address)
 
     if (player) {
-      // const commitment = encrypt(nonce, state.choice);
+      
       if (isConnected) {
         try {
           if (player.p1) {
-            //CONTRACT DEPLOY RPS
+            // const player1choiceHash = encrypt(generateSiweNonce(), state.choice);
+            // //CONTRACT DEPLOY RPS
+
+            // const deploy = await deployContract(config, {
+            //   abi: wagmiAbi,
+            //   args: [],
+            //   bytecode: '0x608060405260405161083e38038061083e833981016040819052610...',
+            //   connector,
+            // })
+
+            // const player2 = state.members.find((x) => {
+            //   return !x.p1 
+            // })
+
+            // To convert Ether to Wei:
+            const bet = parseEther(state.bet.toString())
+            
             setStatus(0.1);
             setPending(true);
-            // await transaction.wait();
+            // const result = await writeContract(config, {
+            //   abi,
+            //   address: '0x6b175474e89094c44da98b954eedeac495271d0f', //contract address
+            //   functionName: 'RPS',
+            //   args: [
+            //     player1choiceHash,
+            //     player2?.address,
+            //     state.bet,
+            //     address
+            //   ],
+            // })
             setPending(false);
+            
             // Ensure that we aren't backtracking the game status
             if (state.status <= 0.1) {
               setStatus(1);
             }
+
             toast.success("Commitment Received!", {
               description: "Your choice has been encrypted.",
               duration: 5000,
               dismissible: true,
               position: "top-right",
             });
+            socket.emit('player-move', {address})
+            setPlayer1committed(true)
           }
           else {
-            //CONTRACT PLAY
+            //CONTRACT PLAYER 2
+            // const player2choiceHash = encrypt(generateSiweNonce(), state.choice);
             setStatus(2)
+            setPending(true);
+            // const result = await writeContract(config, {
+            //   abi,
+            //   address: '0x6b175474e89094c44da98b954eedeac495271d0f', //contract address
+            //   functionName: 'play',
+            //   args: [
+            //     player2choiceHash,
+            //   ],
+            // })
+            setPending(false);
+
             toast.info("Opponent Committed!", {
               description: "Please verify your choice",
               duration: 5000,
               dismissible: true,
               position: "top-right",
             });
+            setPlayer2committed(true)
+            socket.emit('player-move', {address})
           }
         } catch (err) {
           setStatus(0);
@@ -220,8 +272,16 @@ export const GameRoom = ({ gameId, username }: GameRoomProps) => {
     if (player) {
       if (isConnected) {
         //contract call solve method
+        // const result = await writeContract(config, {
+        //   abi,
+        //   address: '0x6b175474e89094c44da98b954eedeac495271d0f',
+        //   functionName: 'solve',
+        //   args: [
+        //     player2choiceHash,
+        //   ],
+        // })
       }
-      else{
+      else {
         toast.error("No Web3 Provider Found!", {
           description: "Please connect MetaMask and try again.",
           duration: 5000,
@@ -302,9 +362,7 @@ export const GameRoom = ({ gameId, username }: GameRoomProps) => {
           <Button disabled={state.status <= 2 && !state.members?.find((x) => x.address === address)?.p1 && timeLeft > 0} size="sm" variant="secondary" onClick={() => timeout()}>
             Timeout
           </Button>
-          <Button size="sm" variant="destructive">
-            Cancel
-          </Button>
+          <CancelButton />
         </CardFooter>
       </Card>
     </div>
