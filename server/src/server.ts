@@ -5,7 +5,7 @@ import { Server, type Socket } from 'socket.io'
 import http from 'http'
 import cors from 'cors'
 
-import { addUser, getRoomMembers, getUser, removeUser } from './data/users'
+import { addUser, getRoomMembers, getUser, removeUser, updateUser } from './data/users'
 import { GameRoomData, HexString, User } from './types'
 
 
@@ -64,6 +64,17 @@ function leaveRoom(socket: Socket) {
   socket.leave(gameId)
 }
 
+function updatePlayer(socket: Socket, userData: User) {
+  const user = getUser(socket.id)
+  if (!user) return
+  updateUser(userData)
+  const { username, gameId } = user
+  socket.to(gameId).emit('send-notification', {
+    title: 'Choice Commited',
+    message: `${username} has committed the choice.`,
+  })
+}
+
 io.on('connection', socket => {
   socket.on('create-room', (gameRoomData: GameRoomData, userData: User) => {
     console.log("🚀 ~ socket.on ~ userData:", userData)
@@ -87,6 +98,10 @@ io.on('connection', socket => {
     socket.emit('room-not-found', {
       message: "Oops! The Room ID you entered doesn't exist or hasn't been created yet.",
     })
+  })
+
+  socket.on('player-move', (userData: User) => {
+    updatePlayer(socket, userData)
   })
 
   socket.on('leave-room', () => {
