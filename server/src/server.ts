@@ -81,18 +81,18 @@ io.on('connection', socket => {
     console.log("🚀 ~ socket.on ~ gameRoomData:", gameRoomData)
 
     const { gameId, username } = gameRoomData
-    const {p1} = userData
+    const {p1,address} = userData
 
-    joinRoom(socket, gameId, username, p1)
+    joinRoom(socket, gameId, username, p1, address)
   })
 
   socket.on('join-room', (gameRoomData: GameRoomData, userData: User) => {
     const { gameId, username } = gameRoomData
     console.log("🚀 ~ file: server.ts:101 ~ socket.on ~ gameRoomData:", gameRoomData)
-    const {p1} = userData
+    const {p1, address} = userData
 
     if (isRoomCreated(gameId)) {
-      return joinRoom(socket, gameId, username, p1)
+      return joinRoom(socket, gameId, username, p1, address)
     }
 
     socket.emit('room-not-found', {
