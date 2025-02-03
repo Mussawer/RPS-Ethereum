@@ -22,22 +22,20 @@ function isRoomCreated(gameId: string) {
   return rooms?.some(room => room[0] === gameId)
 }
 
-function joinRoom(socket: Socket, gameId: string, username: string, p1: boolean, address?: HexString, ) {
-    console.log("Before joining - Rooms:", Array.from(io.sockets.adapter.rooms));
-  
+function joinRoom(socket: Socket, gameId: string, username: string, p1: boolean, address?: HexString ) {
     socket.join(gameId);
-    
-    console.log("After joining - Rooms:", Array.from(io.sockets.adapter.rooms));
-    console.log("Room members for", gameId, ":", io.sockets.adapter.rooms.get(gameId));
-  
-    const user = {
+    const user: User = {
     id: socket.id,
     username,
     address,
-    p1
+    p1,
+    gameId
   }
-  addUser({ ...user, gameId, address, p1 })
+  console.log("🚀 ~ joinRoom ~ user:", user)
+  
+  addUser({...user})
   const members = getRoomMembers(gameId)
+  console.log("🚀 ~ joinRoom ~ members:", members)
 
   socket.emit('room-joined', { user, gameId, members })
   socket.to(gameId).emit('update-members', members)
@@ -77,8 +75,8 @@ function updatePlayer(socket: Socket, userData: User) {
 
 io.on('connection', socket => {
   socket.on('create-room', (gameRoomData: GameRoomData, userData: User) => {
-    console.log("🚀 ~ socket.on ~ userData:", userData)
-    console.log("🚀 ~ socket.on ~ gameRoomData:", gameRoomData)
+    console.log("🚀 create-room ~ socket.on ~ userData:", userData)
+    console.log("🚀 create-room ~ socket.on ~ gameRoomData:", gameRoomData)
 
     const { gameId, username } = gameRoomData
     const {p1,address} = userData
@@ -87,8 +85,8 @@ io.on('connection', socket => {
   })
 
   socket.on('join-room', (gameRoomData: GameRoomData, userData: User) => {
+    console.log("🚀 join-room ~ socket.on ~ userData:", userData)
     const { gameId, username } = gameRoomData
-    console.log("🚀 ~ file: server.ts:101 ~ socket.on ~ gameRoomData:", gameRoomData)
     const {p1, address} = userData
 
     if (isRoomCreated(gameId)) {
