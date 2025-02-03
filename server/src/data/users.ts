@@ -15,7 +15,7 @@ const updateUser = (userData: User) => {
 const getRoomMembers = (gameId: string) =>
   players
     .filter(user => user.gameId === gameId)
-    .map(({ id, username }) => ({ id, username }))
+    .map(({ id, username, gameId, address, p1 }) => ({ id, username, gameId, address, p1 }))
 
 const addUser = (user: User) => players.push(user)
 
