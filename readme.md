@@ -39,7 +39,7 @@ Experience the game live at [https://rps-extended.onrender.com](https://rps-exte
 ### Prerequisites
 - Node.js v18+
 - MetaMask wallet
-- Sepolia testnet ETH (get from [faucet](https://sepoliafaucet.com))
+- Sepolia testnet ETH
 
 ## Game Flow
 
@@ -86,10 +86,8 @@ interface RPS-Xtended {
 
 ## Future Roadmap
 
-- 📊 On-Chain Stats & Leaderboards
-- 🎨 Animated Move Visualizations
+- 📊 Leaderboards
 - 🔄 Multi-Round Match System
-- 📱 Progressive Web App Support
 - 🌉 Cross-Chain Gameplay Support
 - 🗄️ Database Layer to persist game data and game histories
 
