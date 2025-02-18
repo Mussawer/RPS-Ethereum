@@ -5,11 +5,13 @@ export interface GameRoomData {
   
   export type HexString = `0x${string}` | undefined;
 
-  export interface User {
+  export interface Player {
     id: string
     username: string
     gameId: string
     address: HexString
     p1: boolean
-    choice?: string | number
+    contractAddress?: HexString;
+    choiceHash?: string;
+    stake?: number
   }

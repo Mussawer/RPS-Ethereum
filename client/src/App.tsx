@@ -17,9 +17,8 @@ const App = () => {
   const [bytesGameId, setBytesGameId] = useState(keccak256(toHex(gameId)));
   const [status, setStatus] = useState(0);
   const [outcome, setOutcome] = useState("unknown");
-  const [bet, setBet] = useState(0);
-  const [choice, setChoice] = useState(1);
-  const [user, setUser] = useState<User>({username: '', id: '', address: '',});
+  const [stake, setStake] = useState(0);
+  const [choice, setChoice] = useState(0);
   const [members, setMembers] = useState<User[]>([]);
 
 
@@ -43,20 +42,18 @@ const App = () => {
           bytesGameId,
           status,
           outcome,
-          bet,
+          stake,
           choice,
           members,
-          user
         },
         setUsername,
         setGameId,
         setBytesGameId,
         setStatus,
         setOutcome,
-        setBet,
+        setStake,
         setChoice,
         setMembers,
-        setUser
       }}
     >
       <RouterProvider router={router} />

@@ -1,6 +1,14 @@
+import { HexString } from "./GameRoom"
+
 export interface User {
-    id: string
+    id?: string
     username: string
-    address: string
+    address?: HexString
     p1?: boolean
+    choiceHash?: string,
+    contractAddress?: HexString,
+    move?: number
+    choice?: string
+    gameId?: string
+    stake?: number
 }

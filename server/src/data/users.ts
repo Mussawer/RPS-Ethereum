@@ -1,26 +1,29 @@
-import { HexString, User } from "../types"
+import { Player} from "../types"
 
 
-let players: User[] = []
+let players: Player[] = []
 
-const getUser = (userId: string) => players.find(user => user.id === userId)
+const getPlayer = (userId: string) => players.find(user => user.id === userId)
 
-const updateUser = (userData: User) => {
+const updatePlayer = (userData: Player) => {
   const player = players.find((user) => user.address === userData.address)
   if (player) {
-    player.choice = userData.choice
+    player.choiceHash = userData.choiceHash
+    player.stake = userData.stake
+    player.contractAddress = userData.contractAddress
   }
+  console.log("🚀 ~ updateUser ~ players:", players)
 }
 
 const getRoomMembers = (gameId: string) =>
   players
     .filter(user => user.gameId === gameId)
-    .map(({ id, username, gameId, address, p1 }) => ({ id, username, gameId, address, p1 }))
+    .map(({ id, username, gameId, address, p1, choiceHash, contractAddress, stake }) => ({ id, username, gameId, address, p1, choiceHash, contractAddress, stake }))
 
-const addUser = (user: User) => players.push(user)
+const addPlayer = (user: Player) => players.push(user)
 
-const removeUser = (userId: string) => {
+const removePlayer = (userId: string) => {
   players = players.filter(user => user.id !== userId)
 }
 
-export { getUser, getRoomMembers, addUser, removeUser, updateUser }
+export { getPlayer, getRoomMembers, addPlayer, removePlayer, updatePlayer }

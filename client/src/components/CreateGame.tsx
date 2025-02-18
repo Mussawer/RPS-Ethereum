@@ -23,71 +23,76 @@ import { keccak256, toHex } from 'viem';
 import AppContext from '../lib/AppContext';
 import { socket } from '../lib/socket';
 import { GameJoinedData } from '../interfaces/GameRoom';
+import { useAccount } from 'wagmi';
+import * as z from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { createGameSchema } from '../lib/validations/CreateGame';
 
-type HexString = `0x${string}` | undefined;
 
 interface CreateGameFormProps {
   gameId: string
-  isConnected: boolean
-  address: HexString
+
 }
 
 
 
-interface CreateGameForm {
-  username: string
-}
 
-export default function CreateGame({ gameId, isConnected, address }: CreateGameFormProps) {
+type CreatGameForm = z.infer<typeof createGameSchema>
+
+export default function CreateGame({ gameId }: CreateGameFormProps) {
+  const {isConnected, address}  = useAccount();
   const navigate = useNavigate()
-  const {setBytesGameId, setStatus, setOutcome, setBet, setChoice, setUsername, setMembers, setUser} = useContext(AppContext);
+  const {state, setBytesGameId, setStatus, setOutcome, setStake, setChoice, setUsername, setMembers} = useContext(AppContext);
   setBytesGameId(keccak256(toHex((gameId))));
   setStatus(0);
   setOutcome("unknown");
-  setBet(0);
-  setChoice(1);
-  console.log("🚀 ~ CreateGameForm ~ isConnected:", isConnected)
+  setStake(0);
+  setChoice(0);
 
   const [isLoading, setIsLoading] = useState(false)
 
-  const form = useForm<CreateGameForm>({
+  const form = useForm<CreatGameForm>({
+    resolver: zodResolver(createGameSchema),
     defaultValues: {
       username: '',
     },
   })
 
-  function onSubmit({ username }: CreateGameForm) {
+
+  function onSubmit({ username }: CreatGameForm) {
     setIsLoading(true)
     setUsername(username)
     navigate('/game-room')
-    socket.emit('create-room', { gameId, username }, {address, p1:true })
+    socket.emit('create-room', { gameId, username }, {address, p1:true, username})
   }
 
     useEffect(() => {
-      socket.on('room-joined', ({ user, gameId, members }: GameJoinedData) => {
-        user.p1 = true
-        user.address = 'x0'
-        setUser(user)
+      setChoice(0)
+      setStake(0)
+      socket.on('game-joined', ({ members }: GameJoinedData) => {
         setMembers(members)
         navigate('/game-room')
       })
 
       function handleErrorMessage({ message }: { message: string }) {
-        toast('Failed to join room!', {
+        toast.error('Failed to join room!', {
           description: message,
+          duration: 5000,
+        dismissible: true,
+        position: "top-right",
         })
       }
 
-      socket.on('room-not-found', handleErrorMessage)
+      socket.on('game-not-found', handleErrorMessage)
 
       socket.on('invalid-data', handleErrorMessage)
 
       return () => {
-        socket.off('room-joined')
-        socket.off('room-not-found')
+        socket.off('game-joined')
+        socket.off('game-not-found')
         socket.off('invalid-data', handleErrorMessage)
       }
-    }, [setUser, setMembers])
+    }, [setMembers])
 
   return (
     <Form {...form}>
@@ -117,8 +122,7 @@ export default function CreateGame({ gameId, isConnected, address }: CreateGameF
           <Tooltip>
             <TooltipTrigger asChild>
               <div>
-              {/* disabled={!isConnected} */}
-                <Button type='submit' className='mt-2 w-full'> 
+                <Button disabled={!isConnected} type='submit' className='mt-2 w-full'> 
                   {isLoading ? <Loader2 className='h-4 w-4 animate-spin' /> : 'Create a Room'}
                 </Button>
               </div>

@@ -2,14 +2,12 @@
   "name": "RPS-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "dev": "nodemon",
     "build": "tsc",
     "start": "npm run build && node build/server.js"
   },
   "keywords": [],
-  "author": "Naing Linn Khant",
   "license": "ISC",
   "devDependencies": {
     "nodemon": "^3.0.1",

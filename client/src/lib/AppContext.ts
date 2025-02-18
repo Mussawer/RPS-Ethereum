@@ -8,9 +8,8 @@ type AppContextType = {
         bytesGameId: `0x${string}`; // for viem's keccak256 return type
         status: number;
         outcome: string;
-        bet: number;
+        stake: number;
         choice: number;
-        user: User
         members: User[]
     };
     setUsername: (username: string) => void;
@@ -18,9 +17,8 @@ type AppContextType = {
     setBytesGameId: (bytesGameId: `0x${string}`) => void;
     setStatus: (status: number) => void;
     setOutcome: (outcome: string) => void;
-    setBet: (bet: number) => void;
+    setStake: (stake: number) => void;
     setChoice: (choice: number) => void;
-    setUser: (User: User) => void
     setMembers: (members: User[]) => void
 }
 
@@ -31,9 +29,8 @@ const defaultContext: AppContextType = {
         bytesGameId: '0x',
         status: 0,
         outcome: 'unknown',
-        bet: 0,
+        stake: 0,
         choice: 1,
-        user: { username: '', address: '', id: '' },
         members: []
     },
     setUsername: () => { },
@@ -41,9 +38,8 @@ const defaultContext: AppContextType = {
     setBytesGameId: () => { },
     setStatus: () => { },
     setOutcome: () => { },
-    setBet: () => { },
+    setStake: () => { },
     setChoice: () => { },
-    setUser: () => { },
     setMembers: () => { }
 };
 

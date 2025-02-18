@@ -40,7 +40,7 @@ export default function Home({gameId}: HomeProps) {
         </CardHeader>
 
         <CardContent className='flex flex-col space-y-4'>
-          <CreateGame gameId={gameId} isConnected={isConnected} address={address}/>
+          <CreateGame gameId={gameId}/>
 
           <div className='flex items-center space-x-2 '>
             <Separator />
@@ -48,7 +48,7 @@ export default function Home({gameId}: HomeProps) {
             <Separator />
           </div>
 
-          <JoinGame isConnected={isConnected} address={address}/>
+          <JoinGame />
         </CardContent>
       </Card>
     </div>
