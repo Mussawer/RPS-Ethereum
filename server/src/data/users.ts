@@ -12,7 +12,6 @@ const updatePlayer = (userData: Player) => {
     player.stake = userData.stake
     player.contractAddress = userData.contractAddress
   }
-  console.log("🚀 ~ updateUser ~ players:", players)
 }
 
 const getRoomMembers = (gameId: string) =>

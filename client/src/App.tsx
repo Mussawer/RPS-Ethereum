@@ -36,7 +36,7 @@ const App = () => {
       path: "/game-room",
       element: (
         <Suspense fallback={<LoadingSpinner />}>
-          <GameRoom gameId={gameId} username={username}/>
+          <GameRoom gameId={gameId}/>
         </Suspense>
       ),
     }

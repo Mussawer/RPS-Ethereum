@@ -118,7 +118,8 @@ io.on('connection', socket => {
   })
 
   socket.on('game-result', (resultData) => {
-    socket.to(resultData.gameId).emit('game-result', resultData);
+    console.log("🚀 ~ :121 ~ socket.on ~ resultData:", resultData)
+    io.to(resultData.gameId).emit('game-result', resultData);
   });
 
   socket.on('player-move', (playerData: Player) => {

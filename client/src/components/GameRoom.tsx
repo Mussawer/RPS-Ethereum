@@ -33,7 +33,6 @@ import { rpsAbi } from "@/contracts/rpsAbi";
 
 interface GameRoomProps {
   gameId: string;
-  username: string;
 }
 
 type StakeFormValues = z.infer<ReturnType<typeof stakeSchema>>;
@@ -41,7 +40,7 @@ type StakeFormValues = z.infer<ReturnType<typeof stakeSchema>>;
 const GameRoom = ({ gameId }: GameRoomProps) => {
   //App state management
   const { state, setOutcome, setStake, setChoice, setMembers } = useContext(AppContext);
-  
+
   // Contract actions
   const { isConnected, address } = useAccount();
   const { executeWriteAction } = useContractAction();
@@ -78,7 +77,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
   const [remainingTimeInSeconds, setRemainingTimeInSeconds] = useState(300); // to track time for timer
   const [isCommitPhase, setIsCommitPhase] = useState(true); // Add state for tracking phase
 
-   // Player references and game data
+  // Player references and game data
   const gameRoomMembers = useRef<User[]>();
   const player1 = useRef<User>();
   const player2 = useRef<User>();
@@ -91,10 +90,11 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     setChoice(hand.id);
   };
 
- // WebSocket event listeners
+  // WebSocket event listeners
   useEffect(() => {
     // Update members list when players join/leave
     socket.on("update-members", (members) => {
+      console.log("🚀 ~ :98 ~ socket.on ~ members:", members);
       gameRoomMembers.current = members;
       setMembers(members);
 
@@ -121,17 +121,15 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     socket.on("game-result", (data) => {
       setIsGameEnded(true);
       setOutcome(data.outcome);
-
-      // Update winner state
       if (data.outcome === "tie") {
         setWinner({
           username: "",
           reward: state.stake, // Each player gets their stake back
-          choice: `Player 1 choice ${data?.player1?.choice} and Player 2 choice ${data.player2.choice}`, // Or some tie indicator
+          choice: "", // Or some tie indicator
           address: "0x" as HexString,
           reason: "",
         });
-      } else if (data.winner) {
+      } else if (data.outcome === "win") {
         setWinner({
           username: data.winner.username,
           reward: data.winner.reward,
@@ -469,20 +467,20 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
 
           if (result) {
             const { outcome, gameWinner } = result;
+            console.log("🚀 ~ :472 ~ solve ~ outcome:", outcome);
             setOutcome(outcome);
             setWinner(gameWinner || { username: "", reward: 0, choice: "", address: "0x", reason: "" });
             setIsGameEnded(true);
+            setIsPendingTransaction(false);
             socket.emit("game-result", {
-              gameId,
+              gameId: gameRoomMembers.current?.find((x) => x.p1 === true)?.gameId,
               outcome,
               winner: gameWinner,
               player1: gameRoomMembers.current?.find((x) => x.p1 === true),
-              player2: gameRoomMembers.current?.find((x) => !x.p1),
+              player2: gameRoomMembers.current?.find((x) => x.p1 !== true),
               totalStake: state.stake * 2,
             });
           }
-
-          setIsPendingTransaction(false);
         }
       } else {
         showToast("error", "No Web3 Provider Found!", "Please install MetaMask and try again.");
@@ -490,6 +488,13 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
       }
     }
   };
+
+  // Add these lines before the return statement
+  const currentPlayer = gameRoomMembers.current?.find((x) => x.address === address);
+  const isPlayer1 = currentPlayer?.p1;
+
+  // Compute disabled state for Player 1
+  const isPlayDisabledForP1 = isPlayer1 && (hasPlayer1Committed || isPendingTransaction || isGameEnded);
 
   return (
     <div className="flex h-screen flex-col items-center justify-center">
@@ -502,7 +507,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
           outcome={state.outcome}
           totalStake={state.stake * 2}
           winner={winner}
-          isGameEnded={isGameEnded && (!!winner.username || !!winner.reason)}
+          isGameEnded={isGameEnded && (!!state.outcome || !!winner.reason)}
           onClose={() => console.log("Winner modal closed")}
         />
       </div>
@@ -536,7 +541,6 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
                 register={register}
                 trigger={form.trigger}
                 value={state.stake}
-                setStake={setStake}
                 errors={errors}
                 address={address}
                 gameRoomMembers={gameRoomMembers}
@@ -551,8 +555,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
         <CardFooter className="flex flex-wrap gap-2">
           <PlayButton
             play={play}
-            isPendingTransaction={isPendingTransaction}
-            hasPlayer2Committed={hasPlayer2Committed}
+            disabled={isPlayDisabledForP1 as boolean}
           />
           {gameRoomMembers.current?.find((x) => x.address === address)?.p1 && (
             <Button
@@ -571,4 +574,4 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
   );
 };
 
-export default GameRoom
+export default GameRoom;

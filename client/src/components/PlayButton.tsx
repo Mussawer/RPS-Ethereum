@@ -7,11 +7,10 @@ import { useAccount } from "wagmi";
 
 interface PlayButtonProps {
   play: (address: Address) => void;
-  isPendingTransaction: boolean;
-  hasPlayer2Committed: boolean
+  disabled: boolean;
 }
 
-export const PlayButton = ({ play, isPendingTransaction, hasPlayer2Committed }: PlayButtonProps) => {
+export const PlayButton = ({ play, disabled }: PlayButtonProps) => {
   const { address } = useAccount();
   const { state } = useContext(AppContext);
   return (
@@ -20,7 +19,7 @@ export const PlayButton = ({ play, isPendingTransaction, hasPlayer2Committed }: 
         <TooltipTrigger asChild>
           <div>
             <Button
-              disabled={state.stake === 0 || state.choice === 0 || isPendingTransaction || hasPlayer2Committed}
+              disabled={state.stake === 0 || state.choice === 0 || disabled}
               size="sm"
               onClick={() => play?.(address as Address)}
             >
