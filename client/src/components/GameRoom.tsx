@@ -94,7 +94,6 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
   useEffect(() => {
     // Update members list when players join/leave
     socket.on("update-members", (members) => {
-      console.log("🚀 ~ :98 ~ socket.on ~ members:", members);
       gameRoomMembers.current = members;
       setMembers(members);
 
@@ -467,7 +466,6 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
 
           if (result) {
             const { outcome, gameWinner } = result;
-            console.log("🚀 ~ :472 ~ solve ~ outcome:", outcome);
             setOutcome(outcome);
             setWinner(gameWinner || { username: "", reward: 0, choice: "", address: "0x", reason: "" });
             setIsGameEnded(true);
@@ -508,7 +506,6 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
           totalStake={state.stake * 2}
           winner={winner}
           isGameEnded={isGameEnded && (!!state.outcome || !!winner.reason)}
-          onClose={() => console.log("Winner modal closed")}
         />
       </div>
 
