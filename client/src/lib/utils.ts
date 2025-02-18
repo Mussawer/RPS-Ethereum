@@ -5,11 +5,11 @@ import { deployContract, readContract, waitForTransactionReceipt } from "@wagmi/
 import { Abi, Address, TransactionReceipt } from 'viem';
 import { Config } from '@wagmi/core';
 import { DeployContract, GameState } from '../interfaces/ContractActions';
-import { rpsAbi } from '../../../contracts/rpsAbi';
-import { rpsByteCode } from '../../../contracts/rpsByteCode';
 import { GameResult, HexString } from '../interfaces/GameRoom';
 import { User } from '../interfaces/User';
 import { ReadContractParams } from '../hooks/useReadContractAction';
+import { rpsAbi } from '@/contracts/rpsAbi';
+import { rpsByteCode } from '@/contracts/rpsByteCode';
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
