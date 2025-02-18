@@ -1,14 +1,15 @@
 
 import './App.css'
-import { useState } from 'react';
-import Home from './pages/Home';
+import { lazy, Suspense, useState } from 'react';
 import { keccak256, toHex } from 'viem'
 import { nanoid } from 'nanoid'
 import AppContext from './lib/AppContext';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { GameRoom } from '@/src/components/GameRoom';
+const Home = lazy(() => import('./pages/Home'));
+const GameRoom = lazy(() => import('@/src/components/GameRoom'));
 import { User } from './interfaces/User';
 import { Toaster } from './components/ui/Toaster';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
 
 
 const App = () => {
@@ -25,14 +26,22 @@ const App = () => {
   const router = createBrowserRouter([
     {
       path: "/",
-      element: <Home gameId={gameId}/>,
+      element: (
+        <Suspense fallback={<LoadingSpinner />}>
+          <Home gameId={gameId}/>
+        </Suspense>
+      ),
     },
     {
       path: "/game-room",
-      element: <GameRoom gameId={gameId} username={username}/>,
+      element: (
+        <Suspense fallback={<LoadingSpinner />}>
+          <GameRoom gameId={gameId} username={username}/>
+        </Suspense>
+      ),
     }
   ]);
-
+  
   return (
     <AppContext.Provider
       value={{

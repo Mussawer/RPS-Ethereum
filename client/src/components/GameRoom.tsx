@@ -33,6 +33,9 @@ import { stakeSchema } from "../lib/validations/StakeSchema";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Choice } from "./Choice";
+import { PlayButton } from "./PlayButton";
+import { StakeInput } from "./StakeInput";
 
 interface GameRoomProps {
   gameId: string;
@@ -41,7 +44,7 @@ interface GameRoomProps {
 
 type StakeFormValues = z.infer<ReturnType<typeof stakeSchema>>;
 
-export const GameRoom = ({ gameId }: GameRoomProps) => {
+const GameRoom = ({ gameId }: GameRoomProps) => {
   const { isConnected, address, connector } = useAccount();
   //APP STATE MANAGEMENT
   const { state, setOutcome, setStake, setChoice, setMembers } = useContext(AppContext);
@@ -497,9 +500,10 @@ export const GameRoom = ({ gameId }: GameRoomProps) => {
 
   return (
     <div className="flex h-screen flex-col items-center justify-center">
-      <div hidden={!isConnected} className="fixed right-[5vw] top-5 flex-1 md:right-5">
+      <div hidden={!isConnected} className="right-[5vw] top-5 flex-1 md:right-5 fixed">
         <ConnectButton />
       </div>
+
       <div className="m-1 max-w-md w-full">
         <Winner
           outcome={state.outcome}
@@ -509,120 +513,69 @@ export const GameRoom = ({ gameId }: GameRoomProps) => {
           onClose={() => console.log("Winner modal closed")}
         />
       </div>
-      <div className="relative">
-        <Card className="w-full max-w-lg">
-          <CardHeader>
-            <CardTitle></CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+
+      <Card className="w-full max-w-lg">
+        <CardHeader>
+          <CardTitle></CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <div className="flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
+              <span>{state.username}</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gameId">Game ID</Label>
+            <div className="flex gap-2">
               <div className="flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-                <span>{state.username}</span>
+                <span>{gameId}</span>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="gameId">Game ID</Label>
-              <div className="flex gap-2">
-                <div className="flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-                  <span>{gameId}</span>
-                </div>
-              </div>
+          </div>
+          <div>
+            <Status pending={isPendingTransaction} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bet">Your Stake</Label>
+            <div className="flex flex-col gap-2">
+              <StakeInput
+                register={register}
+                trigger={form.trigger}
+                value={state.stake}
+                setStake={setStake}
+                errors={errors}
+                address={address}
+                gameRoomMembers={gameRoomMembers}
+              />
             </div>
-            <div>
-              <Status pending={isPendingTransaction} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bet">Your Stake</Label>
-              <div className="flex flex-col gap-2">
-                <Input
-                  {...register("stake", {
-                    valueAsNumber: true,
-                    setValueAs: (value) => {
-                      if (value === '' || value === null) return 0;
-                      const num = Number(value);
-                      return isNaN(num) ? 0 : num;
-                    },
-                    onChange: (e) => {
-                      const value = Number(e.target.value);
-                      setStake(value);
-                      form.trigger("stake"); // Manually trigger validation
-                    },
-                  })}
-                  id="stake"
-                  type="number"
-                  min="0"
-                  step="0.0001"
-                  disabled={!gameRoomMembers.current?.find((player) => player?.address === address)?.p1}
-                  className={errors.stake ? "border-red-500" : ""}
-                />
-                <div className="h-5">
-                  {errors.stake && (form.getValues("stake") !== 0) && <span className="text-sm text-red-500 absolute">{errors.stake.message}</span>}
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col space-y-2">
-              <Label>Choice</Label>
-              <div className="flex flex-wrap justify-center gap-1 sm:gap-1 md:gap-2">
-                {Hands.map(
-                  (hand, index) =>
-                    !!index && (
-                      <Button
-                        color="primary"
-                        onClick={() => selectChoice(hand)}
-                        variant={selectedHandName === hand.name ? "default" : "outline"}
-                        name={String(index)}
-                        aria-label="hand"
-                        key={hand.name}
-                        size={"lg"}
-                      >
-                        {hand.icon}
-                      </Button>
-                    )
-                )}
-              </div>
-            </div>
-
-            <GameTimer timeLeft={remainingTimeInSeconds} phase={isCommitPhase ? "commit" : "reveal"} />
-          </CardContent>
-          <CardFooter className="flex flex-wrap gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <Button
-                      disabled={state.stake === 0 || state.choice === 0 || isPendingTransaction || hasPlayer2Committed}
-                      size="sm"
-                      onClick={() => play(address)}
-                    >
-                      Play
-                    </Button>
-                  </div>
-                </TooltipTrigger>
-
-                <div hidden={state.stake !== 0 && state.choice !== 0}>
-                  <TooltipContent align="end" className="flex gap-1">
-                    {state.stake === 0 && "Stake cannot be Zero"}
-                    {state.stake > 0 && state.choice === 0 && "Select Choice"}
-                  </TooltipContent>
-                </div>
-              </Tooltip>
-            </TooltipProvider>
-
-            {gameRoomMembers.current?.find((x) => x.address === address)?.p1 && (
-              <Button
-                disabled={!hasPlayer2Committed || isPendingTransaction}
-                size="sm"
-                variant="secondary"
-                onClick={() => solve(address)}
-              >
-                Solve
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
-        <RulesDialog />
-      </div>
+          </div>
+          <div className="flex flex-col space-y-2">
+            <Choice selectChoice={selectChoice} selectedHandName={selectedHandName} />
+          </div>
+          <GameTimer timeLeft={remainingTimeInSeconds} phase={isCommitPhase ? "commit" : "reveal"} />
+        </CardContent>
+        <CardFooter className="flex flex-wrap gap-2">
+          <PlayButton
+            play={play}
+            isPendingTransaction={isPendingTransaction}
+            hasPlayer2Committed={hasPlayer2Committed}
+          />
+          {gameRoomMembers.current?.find((x) => x.address === address)?.p1 && (
+            <Button
+              disabled={!hasPlayer2Committed || isPendingTransaction}
+              size="sm"
+              variant="secondary"
+              onClick={() => solve(address)}
+            >
+              Solve
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+      <RulesDialog />
     </div>
   );
 };
+
+export default GameRoom

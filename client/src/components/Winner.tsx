@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { HexString } from "../interfaces/GameRoom";
 import { socket } from "../lib/socket";
+import { useNavigate } from "react-router-dom";
 
 interface GameStatsProps {
   totalStake: number;
@@ -24,12 +25,15 @@ interface GameStatsProps {
 }
 
 export function Winner({ totalStake, outcome, winner, isGameEnded, onClose }: GameStatsProps) {
+  const navigate = useNavigate()
+  
   const [showResult, setShowResult] = useState(false);
 
   const handleClose = () => {
     setShowResult(false);
     onClose?.();
     socket.emit('leave-room')
+    navigate('/')
   };
 
   useEffect(() => {
