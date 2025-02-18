@@ -16,6 +16,6 @@ export default defineConfig({
     strictPort: true  // Fail if port is already in use
   },
   preview: {
-    allowedHosts: ['https://rps-extended.onrender.com']
+    allowedHosts: ['rps-extended.onrender.com']
   }
 })
