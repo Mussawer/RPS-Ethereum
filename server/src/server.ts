@@ -14,14 +14,18 @@ const server = http.createServer(app)
 
 const io = new Server(server)
 
+// Track active game rooms
 let activeRooms: Set<string> = new Set();
 
+// Check if a room exists in active rooms
 function isRoomCreated(gameId: string) {
   return activeRooms.has(gameId);
 }
 
 function joinRoom(socket: Socket, gameId: string, username: string, p1: boolean, address?: HexString) {
   const members = getRoomMembers(gameId);
+
+  // Prevent joining if room is full (max 2 players)
   if (members.length >= 2) {
     socket.emit('room-full', {
       message: "This room is already full.",
@@ -41,8 +45,9 @@ function joinRoom(socket: Socket, gameId: string, username: string, p1: boolean,
     gameId
   }
   addPlayer(player)
+
+  // Get updated member list and notify clients
   const updatedMembers = getRoomMembers(gameId);
-  console.log("🚀 ~ :45 ~ joinRoom ~ updatedMembers:", updatedMembers)
   socket.emit('game-joined', { player, gameId, updatedMembers })
   socket.to(gameId).emit('update-members', updatedMembers)
   socket.to(gameId).emit('send-notification', {
@@ -60,10 +65,12 @@ function leaveRoom(socket: Socket) {
   removePlayer(socket.id)
   const members = getRoomMembers(gameId)
 
+  // Clean up empty rooms
   if (members.length === 0) {
     activeRooms.delete(gameId);
   }
 
+  // Notify remaining players about departure
   socket.to(gameId).emit('update-members', members)
   socket.to(gameId).emit('send-notification', {
     title: 'Member departure!',
@@ -73,9 +80,7 @@ function leaveRoom(socket: Socket) {
 }
 
 function update(socket: Socket, userData: Player) {
-  console.log("🚀 ~ update ~ userData:", userData)
   const user = getPlayer(socket.id)
-  console.log("🚀 ~ update ~ user:", user)
   if (!user) return
   updatePlayer(userData)
   const { username, gameId } = user
@@ -100,13 +105,8 @@ io.on('connection', socket => {
   })
 
   socket.on('join-room', (gameRoomData: GameRoomData, userData: Player) => {
-    console.log("🚀 join-room ~ socket.on ~ userData:", userData)
     const { gameId, username } = gameRoomData
-    console.log("🚀 ~ :94 ~ socket.on ~ gameId:", gameId)
     const { p1, address } = userData
-
-
-    console.log("🚀 ~ :99 ~ socket.on ~ isRoomCreated(gameId):", isRoomCreated(gameId))
     if (isRoomCreated(gameId)) {
       return joinRoom(socket, gameId, username, p1, address)
     }
@@ -118,7 +118,6 @@ io.on('connection', socket => {
   })
 
   socket.on('game-result', (resultData) => {
-    console.log("🚀 ~ socket.on ~ resultData:", resultData)
     socket.to(resultData.gameId).emit('game-result', resultData);
   });
 

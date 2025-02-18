@@ -45,22 +45,18 @@ interface GameRoomProps {
 type StakeFormValues = z.infer<ReturnType<typeof stakeSchema>>;
 
 const GameRoom = ({ gameId }: GameRoomProps) => {
-  const { isConnected, address, connector } = useAccount();
-  //APP STATE MANAGEMENT
+  //App state management
   const { state, setOutcome, setStake, setChoice, setMembers } = useContext(AppContext);
-
-  //CONTRACT WRITE ACTION
+  
+  // Contract actions
+  const { isConnected, address } = useAccount();
   const { executeWriteAction } = useContractAction();
-
-  //CONTRACT READ ACTION
   const { executeReadAction } = useReadContractAction();
-
-  //BALANCE OF TOKEN
   const { data: balance } = useBalance({
     address: address, // from useAccount()
   });
-  console.log("🚀 ~ :59 ~ GameRoom ~ balance:", balance);
 
+  // Form handling for stake input
   const form = useForm<StakeFormValues>({
     resolver: zodResolver(stakeSchema(balance?.formatted ? Number(balance.formatted) : 0)),
     defaultValues: {
@@ -73,7 +69,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     register,
   } = form;
 
-  // GAME STATE
+  // Game State
   const [isPendingTransaction, setIsPendingTransaction] = useState(false);
   const [selectedHandName, setSelectedHandName] = useState("");
   const [hasPlayer1Committed, setHasPlayer1Committed] = useState(false);
@@ -81,29 +77,29 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
   const [isGameEnded, setIsGameEnded] = useState(false);
   const [winner, setWinner] = useState({ username: "", reward: 0, choice: "", address: "0x" as HexString, reason: "" });
 
-  // CONTRACT INTERACTION STATE
+  // Contract interaction state
   const [contractAddress, setContractAddress] = useState<HexString>();
   const [lastActionTimestamp, setLastActionTimestamp] = useState<number>();
   const [isTimeoutTriggered, setIsTimeoutTriggered] = useState(false);
   const [remainingTimeInSeconds, setRemainingTimeInSeconds] = useState(300); // to track time for timer
   const [isCommitPhase, setIsCommitPhase] = useState(true); // Add state for tracking phase
 
-  //PLAYER REFERENCES
+   // Player references and game data
   const gameRoomMembers = useRef<User[]>();
   const player1 = useRef<User>();
   const player2 = useRef<User>();
   const lastActionRef = useRef<number>();
   const saltRef = useRef<string>();
 
-  // HANDLE PLAYER CHOICE SELECTION
+  // Handle player choice selection
   const selectChoice = (hand: Hands) => {
     setSelectedHandName(hand.name);
     setChoice(hand.id);
   };
 
-  // WEBSOCKET EVENT HANDLERS
+ // WebSocket event listeners
   useEffect(() => {
-    // Handle member updates
+    // Update members list when players join/leave
     socket.on("update-members", (members) => {
       gameRoomMembers.current = members;
       setMembers(members);
@@ -117,7 +113,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
 
     // Handle player moves
     socket.on("player-move", (data) => {
-      // If this is Player 2
+      // Handle player moves and contract deployment
       const player = gameRoomMembers.current?.find((x) => x.address === data.address);
       if (player && player.p1 && data.stake) {
         setStake(Number(data.stake));
@@ -132,6 +128,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
       setIsGameEnded(true);
       setOutcome(data.outcome);
 
+      // Update winner state
       if (data.outcome === "tie") {
         setWinner({
           username: "",
@@ -163,7 +160,6 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
 
     // Handle game timeout
     socket.on("game-timeout", (data) => {
-      console.log("🚀 ~ :138 ~ socket.on ~ data:", data);
       // Always update game state regardless of winner status
       setIsGameEnded(true);
       setIsTimeoutTriggered(true);
@@ -207,7 +203,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     };
   }, [setMembers, state.members, hasPlayer1Committed, isTimeoutTriggered]);
 
-  // TIMEOUT HANDLING AND TIMER
+  // Game timer and timeout handler
   useEffect(() => {
     if (!contractAddress || isTimeoutTriggered || isGameEnded) return;
 
@@ -237,7 +233,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
         }),
       ]);
 
-      // Calculate remaining time
+      // Calculate remaining time and update timer
       const lastAction = Number(lastActionTime);
       const elapsed = now - lastAction;
       const remaining = Math.max(300 - elapsed, 0);
@@ -274,7 +270,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
           }
         }
 
-        // Handle timeout
+        // Handle timeout conditions
         if (remaining === 0) {
           clearInterval(intervalId);
           setIsTimeoutTriggered(true);
@@ -347,7 +343,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     setIsPendingTransaction(false);
   };
 
-  // GAME ACTIONS
+  // Handle player move commitment (Player 1 & 2)
   const play = async (address: HexString) => {
     const player = gameRoomMembers?.current?.find((x) => x.address === address);
     if (!player) return;
@@ -360,8 +356,8 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     setIsPendingTransaction(true);
     try {
       if (player.p1) {
-        // PLAYER 1 logic
-        const salt = toHex(nanoid(30));
+        // Player 1: Deploy contract with hashed move
+        const salt = toHex(nanoid(30)); // Generate random salt
         saltRef.current = salt;
         player1.current = {
           move: state.choice,
@@ -392,10 +388,11 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
             abi: rpsAbi as Abi,
             functionName: "lastAction",
           });
+
           setContractAddress(receipt.contractAddress as Address);
           setLastActionTimestamp(Number(lastActionTime));
 
-          // Emit event and show notification
+          // Emit event and show notification of player move
           socket.emit("player-move", {
             address,
             player1choiceHash,
@@ -406,7 +403,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
           setHasPlayer1Committed(true);
         }
       } else {
-        // PLAYER 2 logic
+        // Player 2: Commit move to existing contract
         player2.current = {
           move: state.choice,
           choice: selectedHandName,
@@ -446,6 +443,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     }
   };
 
+  // Handle move revelation and game resolution (Player 1 only)
   const solve = async (address: HexString) => {
     const player = state.members.find((x) => x.address === address);
     if (player) {
@@ -465,6 +463,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
             showToast("info", title, message);
           });
 
+          // Determine winner using contract state
           const result = await resolveGameResult(
             contractAddress as Address,
             executeReadAction,
