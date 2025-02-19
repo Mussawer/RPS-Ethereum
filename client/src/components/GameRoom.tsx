@@ -248,13 +248,13 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
           if (!player) return;
           if (isCommitPhase && player2Data) {
             socket.emit("timeout-warning", {
-              gameId,
+              gameId: state.gameId,
               warningFor: player2Data.username,
               message: `Warning: 1 minute remaining for ${player2Data.username} to make their move`,
             });
           } else if (player1Data) {
             socket.emit("timeout-warning", {
-              gameId,
+              gameId: gameId,
               warningFor: player1Data.username,
               message: `Warning: 1 minute remaining for ${player1Data.username} to reveal their move`,
             });
@@ -286,7 +286,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
                 };
 
                 socket.emit("game-timeout", {
-                  gameId,
+                  gameId: state.gameId,
                   ...timeoutResult,
                 });
               }
@@ -310,7 +310,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
                 };
 
                 socket.emit("game-timeout", {
-                  gameId,
+                  gameId: state.gameId,
                   ...timeoutResult,
                 });
               }
@@ -471,7 +471,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
             setIsGameEnded(true);
             setIsPendingTransaction(false);
             socket.emit("game-result", {
-              gameId: gameRoomMembers.current?.find((x) => x.p1 === true)?.gameId,
+              gameId: state.gameId,
               outcome,
               winner: gameWinner,
               player1: gameRoomMembers.current?.find((x) => x.p1 === true),
@@ -524,7 +524,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
             <Label htmlFor="gameId">Game ID</Label>
             <div className="flex gap-2">
               <div className="flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-                <span>{gameId}</span>
+                <span>{state.gameId}</span>
               </div>
             </div>
           </div>

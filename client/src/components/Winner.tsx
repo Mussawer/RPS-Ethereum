@@ -34,6 +34,7 @@ export function Winner({ totalStake, outcome, winner, isGameEnded, onClose }: Ga
     onClose?.();
     socket.emit('leave-room')
     navigate('/')
+    location. reload();
   };
 
   useEffect(() => {

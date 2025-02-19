@@ -34,9 +34,6 @@ interface CreateGameFormProps {
 
 }
 
-
-
-
 type CreatGameForm = z.infer<typeof createGameSchema>
 
 export default function CreateGame({ gameId }: CreateGameFormProps) {
@@ -115,7 +112,7 @@ export default function CreateGame({ gameId }: CreateGameFormProps) {
           <p className='mb-2 text-sm font-medium'>Game ID</p>
 
           <div className='flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground'>
-            <span>{gameId}</span>
+            <span>{state.gameId}</span>
           </div>
         </div>
         <TooltipProvider>

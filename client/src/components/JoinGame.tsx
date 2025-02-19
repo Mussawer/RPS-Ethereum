@@ -16,6 +16,8 @@ import * as z from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { joinGameSchema } from "../lib/validations/JoinGame";
 
+
+
 type JoinGameForm = z.infer<typeof joinGameSchema>
 
 export default function JoinGame() {

@@ -19,13 +19,6 @@ interface HomeProps {
 }
 
 export default function Home({gameId}: HomeProps) {
-  const {isConnected, address}  = useAccount();
-  const { setGameId } = useContext(AppContext);
-  useEffect(() => {
-    setGameId(nanoid(30))
-  }, [])
-  
-
   return (
     <div className='flex h-screen flex-col items-center justify-between pb-5 pt-[13vh]'>
       <div className='fixed right-[5vw] top-5 flex-1 md:right-5' >
