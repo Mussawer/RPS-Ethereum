@@ -19,7 +19,7 @@ export const PlayButton = ({ play, disabled }: PlayButtonProps) => {
         <TooltipTrigger asChild>
           <div>
             <Button
-              disabled={state.stake === 0 || state.choice === 0 || disabled || state.members.length !== 2}
+              disabled={(state.stake === 0 || state.choice === 0 || state.members.length !== 2) || disabled}
               size="sm"
               onClick={() => play?.(address as Address)}
             >

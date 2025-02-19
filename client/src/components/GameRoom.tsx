@@ -30,6 +30,7 @@ import { PlayButton } from "./PlayButton";
 import { StakeInput } from "./StakeInput";
 import { HasherAbi } from "@/contracts/hasherAbi";
 import { rpsAbi } from "@/contracts/rpsAbi";
+import { useGameState } from "../hooks/useGameState";
 
 interface GameRoomProps {
   gameId: string;
@@ -68,6 +69,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
   const [hasPlayer1Committed, setHasPlayer1Committed] = useState(false);
   const [hasPlayer2Committed, setHasPlayer2Committed] = useState(false);
   const [isGameEnded, setIsGameEnded] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [winner, setWinner] = useState({ username: "", reward: 0, choice: "", address: "0x" as HexString, reason: "" });
 
   // Contract interaction state
@@ -83,6 +85,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
   const player2 = useRef<User>();
   const lastActionRef = useRef<number>();
   const saltRef = useRef<string>();
+  const {player2Move, stakeOfGame, lastActionTimeStamp} = useGameState({contractAddress})
 
   // Handle player choice selection
   const selectChoice = (hand: Hands) => {
@@ -112,6 +115,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
         setStake(Number(data.stake));
         setContractAddress(data.contractAddress);
         setHasPlayer1Committed(true);
+        setFailed(false)
       } else if (!player?.p1) {
         setHasPlayer2Committed(true);
       }
@@ -205,28 +209,10 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
       const player1Data = gameRoomMembers.current?.find((x) => x.p1 === true);
       const player2Data = gameRoomMembers.current?.find((x) => x.p1 !== true);
       const now = Math.floor(Date.now() / 1000);
-
-      // Fetch current game state from contract
-      const [p2Move, stakeValue, lastActionTime] = await Promise.all([
-        executeReadAction({
-          address: contractAddress,
-          abi: rpsAbi as Abi,
-          functionName: "c2",
-        }),
-        executeReadAction({
-          address: contractAddress,
-          abi: rpsAbi as Abi,
-          functionName: "stake",
-        }),
-        executeReadAction({
-          address: contractAddress,
-          abi: rpsAbi as Abi,
-          functionName: "lastAction",
-        }),
-      ]);
+      
 
       // Calculate remaining time and update timer
-      const lastAction = Number(lastActionTime);
+      const lastAction = Number(lastActionTimeStamp);
       const elapsed = now - lastAction;
       const remaining = Math.max(300 - elapsed, 0);
 
@@ -237,12 +223,17 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
       }
 
       // Only update timer if game is active
-      if (Number(stakeValue) > 0) {
+      if (Number(stakeOfGame) > 0) {
         setRemainingTimeInSeconds(remaining);
 
         // Determine game phase
-        const isCommitPhase = Number(p2Move) === 0;
-        setIsCommitPhase(isCommitPhase);
+        if(player2Move){
+          const isCommitPhase = Number(player2Move) === 0;
+          setIsCommitPhase(isCommitPhase);
+          if(Number(player2Move) > 0){
+            setHasPlayer2Committed(true)
+          }
+        }
 
         // Trigger timeout warnings
         if (remaining === 60) {
@@ -292,8 +283,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
                 });
               }
               setIsGameEnded(true);
-            } else if (!player.p1 && Number(p2Move) > 0) {
-              setHasPlayer2Committed(true);
+            } else if (!player.p1 && Number(player2Move) > 0) {
               setIsTimeoutTriggered(true); // Set timeout flag before transaction
               showToast("warning", "Timing out the game...");
               const j1TimeoutTxReceipt = await executeWriteAction({
@@ -327,7 +317,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
 
     intervalId = setInterval(checkTimeout, 1000);
     return () => clearInterval(intervalId);
-  }, [contractAddress, isGameEnded, isTimeoutTriggered]);
+  }, [contractAddress, isGameEnded, isTimeoutTriggered, lastActionTimeStamp]);
 
   const resetGameState = () => {
     setChoice(0);
@@ -429,12 +419,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     } catch (err) {
       showToast("error", "Commitment Failed!");
       resetGameState();
-      setStake(0);
-      if (player?.p1) {
-        setHasPlayer1Committed(false);
-      } else {
-        setHasPlayer2Committed(false);
-      }
+      setFailed(true)
     } finally {
       setIsPendingTransaction(false);
     }
@@ -489,11 +474,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
           showToast("error", "Commitment Failed!");
           resetGameState();
           setIsPendingTransaction(false);
-          if (player?.p1) {
-            setHasPlayer1Committed(false);
-          } else {
-            setHasPlayer2Committed(false);
-          }
+          setFailed(true)
         }
       } else {
         showToast("error", "No Web3 Provider Found!", "Please install MetaMask and try again.");
@@ -507,9 +488,9 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
 
   // Compute disabled state for both players
   const isPlayDisabled = isPlayer1
-    ? hasPlayer1Committed || isPendingTransaction || isGameEnded
-    : hasPlayer2Committed || isPendingTransaction || isGameEnded;
-
+  ? hasPlayer1Committed &&  (isPendingTransaction || isGameEnded || !failed)
+  : hasPlayer2Committed && (isPendingTransaction || isGameEnded || !failed);
+  
   return (
     <div className="flex h-screen flex-col items-center justify-center">
       <div hidden={!isConnected} className="right-[5vw] top-5 flex-1 md:right-5 fixed">
@@ -577,7 +558,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
           {gameRoomMembers.current?.find((x) => x.address === address)?.p1 && (
             <Button
               hidden={!hasPlayer2Committed || isPendingTransaction}
-              disabled={!hasPlayer2Committed || isPendingTransaction}
+              disabled={!hasPlayer2Committed || isPendingTransaction || failed}
               size="sm"
               variant="default"
               onClick={() => solve(address)}
