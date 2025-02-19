@@ -111,6 +111,7 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
       if (player && player.p1 && data.stake) {
         setStake(Number(data.stake));
         setContractAddress(data.contractAddress);
+        setHasPlayer1Committed(true);
       } else if (!player?.p1) {
         setHasPlayer2Committed(true);
       }
@@ -429,6 +430,11 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
       showToast("error", "Commitment Failed!");
       resetGameState();
       setStake(0);
+      if (player?.p1) {
+        setHasPlayer1Committed(false);
+      } else {
+        setHasPlayer2Committed(false);
+      }
     } finally {
       setIsPendingTransaction(false);
     }
@@ -439,45 +445,54 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     const player = state.members.find((x) => x.address === address);
     if (player) {
       if (isConnected) {
-        //contract call solve method
-        setIsPendingTransaction(true);
-
-        const solveReceipt = await executeWriteAction({
-          abi: rpsAbi as Abi,
-          address: contractAddress as Address,
-          functionName: "solve",
-          args: [player1.current?.move, saltRef.current],
-        });
-        if (solveReceipt?.status === "success") {
-          showToast("success", "Move Revealed!", "Player 1 has revealed their move");
-          socket.on("send-notification", ({ title, message }: Notification) => {
-            showToast("info", title, message);
+        try {
+          setIsPendingTransaction(true);
+          const solveReceipt = await executeWriteAction({
+            abi: rpsAbi as Abi,
+            address: contractAddress as Address,
+            functionName: "solve",
+            args: [player1.current?.move, saltRef.current],
           });
-
-          // Determine winner using contract state
-          const result = await resolveGameResult(
-            contractAddress as Address,
-            executeReadAction,
-            player1.current?.move as number,
-            setStake,
-            gameRoomMembers.current || [],
-            state.stake
-          );
-
-          if (result) {
-            const { outcome, gameWinner } = result;
-            setOutcome(outcome);
-            setWinner(gameWinner || { username: "", reward: 0, choice: "", address: "0x", reason: "" });
-            setIsGameEnded(true);
-            setIsPendingTransaction(false);
-            socket.emit("game-result", {
-              gameId: state.gameId,
-              outcome,
-              winner: gameWinner,
-              player1: gameRoomMembers.current?.find((x) => x.p1 === true),
-              player2: gameRoomMembers.current?.find((x) => x.p1 !== true),
-              totalStake: state.stake * 2,
+          if (solveReceipt?.status === "success") {
+            showToast("success", "Move Revealed!", "Player 1 has revealed their move");
+            socket.on("send-notification", ({ title, message }: Notification) => {
+              showToast("info", title, message);
             });
+
+            // Determine winner using contract state
+            const result = await resolveGameResult(
+              contractAddress as Address,
+              executeReadAction,
+              player1.current?.move as number,
+              setStake,
+              gameRoomMembers.current || [],
+              state.stake
+            );
+
+            if (result) {
+              const { outcome, gameWinner } = result;
+              setOutcome(outcome);
+              setWinner(gameWinner || { username: "", reward: 0, choice: "", address: "0x", reason: "" });
+              setIsGameEnded(true);
+              setIsPendingTransaction(false);
+              socket.emit("game-result", {
+                gameId: state.gameId,
+                outcome,
+                winner: gameWinner,
+                player1: gameRoomMembers.current?.find((x) => x.p1 === true),
+                player2: gameRoomMembers.current?.find((x) => x.p1 !== true),
+                totalStake: state.stake * 2,
+              });
+            }
+          }
+        } catch (error) {
+          showToast("error", "Commitment Failed!");
+          resetGameState();
+          setIsPendingTransaction(false);
+          if (player?.p1) {
+            setHasPlayer1Committed(false);
+          } else {
+            setHasPlayer2Committed(false);
           }
         }
       } else {
@@ -487,12 +502,13 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
     }
   };
 
-  // Add these lines before the return statement
   const currentPlayer = gameRoomMembers.current?.find((x) => x.address === address);
   const isPlayer1 = currentPlayer?.p1;
 
-  // Compute disabled state for Player 1
-  const isPlayDisabledForP1 = isPlayer1 && (hasPlayer1Committed || isPendingTransaction || isGameEnded);
+  // Compute disabled state for both players
+  const isPlayDisabled = isPlayer1
+    ? hasPlayer1Committed || isPendingTransaction || isGameEnded
+    : hasPlayer2Committed || isPendingTransaction || isGameEnded;
 
   return (
     <div className="flex h-screen flex-col items-center justify-center">
@@ -541,24 +557,29 @@ const GameRoom = ({ gameId }: GameRoomProps) => {
                 errors={errors}
                 address={address}
                 gameRoomMembers={gameRoomMembers}
+                hasPlayer1Committed={hasPlayer1Committed}
               />
             </div>
           </div>
           <div className="flex flex-col space-y-2">
             <Choice selectChoice={selectChoice} selectedHandName={selectedHandName} />
           </div>
-          <GameTimer timeLeft={remainingTimeInSeconds} phase={isCommitPhase ? "commit" : "reveal"} />
+          <GameTimer
+            timeLeft={remainingTimeInSeconds}
+            phase={isCommitPhase ? "commit" : "reveal"}
+            hasPlayer1Committed={hasPlayer1Committed}
+            hasPlayer2Committed={hasPlayer2Committed}
+            isPlayer1={currentPlayer?.p1 || false}
+          />
         </CardContent>
         <CardFooter className="flex flex-wrap gap-2">
-          <PlayButton
-            play={play}
-            disabled={isPlayDisabledForP1 as boolean}
-          />
+          <PlayButton play={play} disabled={isPlayDisabled as boolean} />
           {gameRoomMembers.current?.find((x) => x.address === address)?.p1 && (
             <Button
+              hidden={!hasPlayer2Committed || isPendingTransaction}
               disabled={!hasPlayer2Committed || isPendingTransaction}
               size="sm"
-              variant="secondary"
+              variant="default"
               onClick={() => solve(address)}
             >
               Solve

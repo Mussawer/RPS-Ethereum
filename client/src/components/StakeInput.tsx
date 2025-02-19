@@ -12,6 +12,7 @@ interface StakeInputProps {
   value: number;
   errors: any;
   address: HexString | undefined;
+  hasPlayer1Committed: boolean;
   gameRoomMembers: React.MutableRefObject<User[] | undefined>;
 }
 
@@ -21,6 +22,7 @@ export const StakeInput = ({
   errors,
   address,
   gameRoomMembers,
+  hasPlayer1Committed
 }: StakeInputProps) => {
   const { state, setStake } = useContext(AppContext);
   const isPlayer1 = gameRoomMembers.current?.find(
@@ -54,7 +56,7 @@ export const StakeInput = ({
         min="0"
         step="0.0001"
         value={inputValue} // Use local string state
-        disabled={!isPlayer1}
+        disabled={!isPlayer1 || hasPlayer1Committed}
         className={errors.stake ? "border-red-500" : ""}
         onBlur={() => {
           // Final validation on blur

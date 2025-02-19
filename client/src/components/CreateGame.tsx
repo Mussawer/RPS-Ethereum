@@ -120,7 +120,7 @@ export default function CreateGame({ gameId }: CreateGameFormProps) {
             <TooltipTrigger asChild>
               <div>
                 <Button disabled={!isConnected} type='submit' className='mt-2 w-full'> 
-                  {isLoading ? <Loader2 className='h-4 w-4 animate-spin' /> : 'Create a Room'}
+                  {isLoading ? <Loader2 className='h-4 w-4 animate-spin' /> : 'Create Game'}
                 </Button>
               </div>
             </TooltipTrigger>
